@@ -20,8 +20,8 @@ from model import GPT, GPTConfig
 
 # -----------------------------------------------------------------------------
 # model/load config (same pattern as sample.py)
-init_from = 'gpt2'  # 'resume' or a GPT-2 variant (e.g. 'gpt2-medium')
-out_dir = 'out'  # used when init_from == 'resume'
+init_from = 'resume'  # 'resume' or a GPT-2 variant (e.g. 'gpt2-medium')
+out_dir = 'out-rocstories'  # used when init_from == 'resume'
 device = 'cuda'  # 'cpu', 'cuda', 'cuda:0', ...
 dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16'
 compile = False
