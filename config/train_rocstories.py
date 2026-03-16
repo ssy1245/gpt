@@ -5,8 +5,8 @@ log_interval = 10
 
 dataset = 'rocstories'
 
-gradient_accumulation_steps = 1
-batch_size = 32
+batch_size = 8
+gradient_accumulation_steps = 4
 block_size = 512
 
 n_layer = 10
