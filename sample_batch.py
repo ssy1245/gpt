@@ -10,8 +10,8 @@ import tiktoken
 from model import GPTConfig, GPT
 
 # -----------------------------------------------------------------------------
-init_from = 'gpt2' # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
-out_dir = 'out' # ignored if init_from is not 'resume'
+init_from = 'resume' # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
+out_dir = 'out-rocstories' # ignored if init_from is not 'resume'
 start = "FILE:data/rocstories/eval_prompts.txt" # Prompt. Can also specify a file, use as: "FILE:prompt.txt"
 batch_prompts = True # if True, read multiple prompts from the file (one per line)
 output_file = 'samples.jsonl' # file to save generated samples in JSONL format (set to None to disable)

@@ -3,67 +3,81 @@ import tiktoken
 import numpy as np
 
 
-# 1. Load dataset
-dataset = load_dataset("mintujupally/ROCStories")
-stories = dataset["train"]["text"]
+from datasets import load_dataset
+import tiktoken
+import numpy as np
+import random
 
-print(f"Total stories: {len(stories)}")
+# =========================
+# 1. Load dataset
+# =========================
+dataset = load_dataset("mintujupally/ROCStories")
+
+train_stories = list(dataset["train"]["text"])
+test_stories = list(dataset["test"]["text"])
+
+print(f"Total train stories: {len(train_stories)}")
+print(f"Total test stories: {len(test_stories)}")
+
 print("Example story:")
-print(stories[0])
+print(train_stories[0])
 print("-" * 50)
 
-# 2. Story-level split
-n = len(stories)
-split_idx = int(n * 0.9)
-train_stories = stories[:split_idx]
-val_stories = stories[split_idx:]
+# =========================
+# 2. Shuffle (VERY IMPORTANT)
+# =========================
+random.seed(42)
+random.shuffle(train_stories)
 
-print(f"Train stories: {len(train_stories)}")
-print(f"Val stories:   {len(val_stories)}")
-
-
+# =========================
 # 3. Tokenizer
+# =========================
 enc = tiktoken.get_encoding("gpt2")
-eot_id = enc.eot_token  # GPT-2 true <|endoftext|> token id
+eot_id = enc.eot_token
 
-print(f"GPT-2 EOT token id: {eot_id}")
-
-
-# 4. Encode each story, then append true EOT token
+# =========================
+# 4. Encode train
+# =========================
 train_ids = []
+
 for story in train_stories:
-    # story text -> ordinary tokens
-    story_ids = enc.encode_ordinary(story)
-    train_ids.extend(story_ids)
-    # append true EOS / EOT token
+    # add structure signal
+    text = "Story: " + story.strip()
+
+    ids = enc.encode_ordinary(text)
+    train_ids.extend(ids)
     train_ids.append(eot_id)
 
-val_ids = []
-for story in val_stories:
-    story_ids = enc.encode_ordinary(story)
-    val_ids.extend(story_ids)
-    val_ids.append(eot_id)
-
-# 5. Convert to uint16 and save
 train_ids = np.array(train_ids, dtype=np.uint16)
-val_ids = np.array(val_ids, dtype=np.uint16)
 print(f"Train tokens: {len(train_ids):,}")
-print(f"Val tokens:   {len(val_ids):,}")
-
 train_ids.tofile("train.bin")
-val_ids.tofile("val.bin")
 
-print("Saved train.bin and val.bin")
+# =========================
+# 5. Encode test
+# =========================
+test_ids = []
 
+for story in test_stories:
+    text = "Story: " + story.strip()
+
+    ids = enc.encode_ordinary(text)
+    test_ids.extend(ids)
+    test_ids.append(eot_id)
+
+test_ids = np.array(test_ids, dtype=np.uint16)
+print(f"Test tokens: {len(test_ids):,}")
+test_ids.tofile("test.bin")
+
+# =========================
 # 6. Sanity check
+# =========================
 print("-" * 50)
-print("Sanity check on first training example:")
+print("Sanity check:")
 
-first_story_ids = enc.encode_ordinary(train_stories[0]) + [eot_id]
-decoded = enc.decode(first_story_ids)
+sample = "Story: " + train_stories[0]
+ids = enc.encode_ordinary(sample) + [eot_id]
+decoded = enc.decode(ids)
 
 print(decoded)
-print("-" * 50)
-print("Last token of first story:", first_story_ids[-1])
-print("Should equal eot_id:", eot_id)
-print("Check passed:", first_story_ids[-1] == eot_id)
+print("Last token:", ids[-1], "| Should be eot:", eot_id)
+print("Check passed:", ids[-1] == eot_id)
