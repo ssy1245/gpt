@@ -7,7 +7,7 @@ from model import GPT, GPTConfig
 # =====================
 # 配置（你只需要改这里）
 # =====================
-out_dir = 'out-rocstories'
+out_dir = 'out-mixstories'
 test_bin = 'data/rocstories/test.bin'
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

@@ -29,8 +29,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
 
 from model import GPTConfig, GPT
-#command:python train.py config/train_rocstories.py --init_from=resume --out_dir=out-rocstories --device=cuda --compile=False
-#command: python train.py config/train_rocstories.py --device=cuda --compile=False
+#command:python train.py config/train_mix.py --init_from=resume --out_dir=out-mixstories --device=cuda --compile=False
+#command: python train.py config/train_mix.py --device=cuda --compile=False
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
@@ -84,7 +84,7 @@ if not os.path.exists(log_path):
 
 # -----------------------------------------------------------------------------
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
-# 强制指定以 UTF-8 编码读取配置文件
+
 with open('configurator.py', 'r', encoding='utf-8') as f:
     exec(f.read())
 # overrides from command line or config file
@@ -146,7 +146,10 @@ def get_batch(split):
 # init these up here, can override if init_from='resume' (i.e. from a checkpoint)
 iter_num = 0
 best_val_loss = 1e9
-
+patience = 3
+patience_counter = 0
+min_delta = 0.001
+stop_training = False
 # attempt to derive vocab_size from the dataset
 meta_path = os.path.join(data_dir, 'meta.pkl')
 meta_vocab_size = None
@@ -276,6 +279,18 @@ while True:
     if iter_num % eval_interval == 0 and master_process:
         losses = estimate_loss()
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        val_loss = losses['val'].item()
+
+        # Early stopping logic
+        if val_loss < best_val_loss - min_delta:
+            best_val_loss = val_loss
+            patience_counter = 0
+        else:
+            patience_counter += 1
+
+        if patience_counter >= patience:
+            print(f"Early stopping triggered at step {iter_num}")
+            stop_training = True
         #record loss
         with open(log_path, "a", newline="") as f:
             writer = csv.writer(f)
@@ -292,8 +307,7 @@ while True:
                 "lr": lr,
                 "mfu": running_mfu*100, # convert to percentage
             })
-        if losses['val'] < best_val_loss or always_save_checkpoint:
-            best_val_loss = losses['val']
+        if val_loss < best_val_loss or always_save_checkpoint:
             if iter_num > 0:
                 checkpoint = {
                     'model': raw_model.state_dict(),
@@ -351,6 +365,8 @@ while True:
 
     # termination conditions
     if iter_num > max_iters:
+        break
+    if stop_training:
         break
 
 if ddp:
