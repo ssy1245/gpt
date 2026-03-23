@@ -23,5 +23,3 @@ min_lr = 2e-5
 
 beta2 = 0.95
 warmup_iters = 1000
-beta2 = 0.95
-warmup_iters = 1000
